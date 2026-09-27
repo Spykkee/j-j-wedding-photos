@@ -578,7 +578,7 @@ async function removePost(id) {
 
 function openComments(id, focus) {
   state.openPost = id;
-  els.cmts.replaceChildren(h('li', { class: 'ph-cmts__empty', text: tr('loading') }));
+  els.cmts.replaceChildren(...[describe(id), h('li', { class: 'ph-cmts__empty', text: tr('loading') })].filter(Boolean));
   els.cmtInput.value = '';
   els.cmtDlg.showModal();
   if (focus) els.cmtInput.focus(); else els.cmtClose.focus();
@@ -602,14 +602,26 @@ function openComments(id, focus) {
 
 const toRecent = list => list.slice(-PREVIEW).map(c => ({ id: c.id, uid: c.uid, name: c.name, text: c.text }));
 
+/** The post's caption, shown above the comments as its description. */
+function describe(postId) {
+  const p = state.posts.get(postId);
+  if (!p || !p.caption) return null;
+  return h('li', { class: 'ph-desc' },
+    h('span', { class: 'ph-avatar ph-avatar--sm', 'aria-hidden': 'true', text: (p.name || '?').charAt(0).toUpperCase() }),
+    h('div', { class: 'ph-cmt__body' },
+      h('p', {}, h('strong', { text: p.name }), ' ', document.createTextNode(p.caption)),
+      h('div', { class: 'ph-cmt__meta' }, h('time', { class: 'ph-cmt__time', text: timeAgo(p.at) }))));
+}
+
 function renderComments(postId, list) {
   state.cmtList = list;
+  const desc = describe(postId);
   if (!list.length) {
-    els.cmts.replaceChildren(h('li', { class: 'ph-cmts__empty', text: tr('noComments') }));
+    els.cmts.replaceChildren(...[desc, h('li', { class: 'ph-cmts__empty', text: tr('noComments') })].filter(Boolean));
     return;
   }
   const wasAtBottom = els.cmts.scrollHeight - els.cmts.scrollTop - els.cmts.clientHeight < 40;
-  els.cmts.replaceChildren(...list.map(c => {
+  els.cmts.replaceChildren(...[desc].filter(Boolean), ...list.map(c => {
     const del = canDelete(c.uid)
       ? h('button', { type: 'button', class: 'ph-cmt__del', text: tr('del') })
       : null;
