@@ -22,6 +22,12 @@ the first post's `createdAt`, or epoch 0 on an empty feed — never
 field by field. If you add a field to a post or comment, add it to the
 `hasOnly` list in `firebase/firestore.rules` and redeploy, or writes will fail.
 
+**4. Deleting a post deletes its comments in the same batch** (rules let the
+post's author delete comments under it). Cloudinary images are removed later by
+the hourly `cleanup` workflow, which keeps anything under 2 h old and refuses to
+empty the folder when it finds no posts unless run with `allow_empty`. A failed
+upload's Retry re-sends photos older than 1 h for the same reason.
+
 ## Data model
 
 ```

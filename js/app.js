@@ -14,7 +14,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/fireba
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 import {
   getFirestore, collection, doc, query, orderBy, limit, startAfter, where,
-  getDocs, getDoc, getCountFromServer, onSnapshot, addDoc, updateDoc, deleteDoc, runTransaction,
+  getDocs, getDoc, getCountFromServer, onSnapshot, addDoc, updateDoc, runTransaction, writeBatch,
   serverTimestamp, deleteField, Timestamp
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
@@ -565,7 +565,15 @@ async function like(id, on) {
 async function removePost(id) {
   if (!confirm(tr('delPost'))) return;
   try {
-    await deleteDoc(doc(db, 'posts', id));
+    // The post and all its comments go together. The photos on Cloudinary are
+    // removed by the hourly cleanup job (.github/workflows/cleanup.yml), which
+    // holds the Cloudinary secret that a web page can't.
+    const postRef = doc(db, 'posts', id);
+    const cmts = await getDocs(collection(postRef, 'comments'));
+    const b = writeBatch(db);
+    cmts.docs.forEach(d => b.delete(d.ref));
+    b.delete(postRef);
+    await b.commit();
     if (state.posts.has(id)) bumpCount(-1);
     dropPost(id);
   } catch (err) {
@@ -789,6 +797,10 @@ function trayItem(file, count) {
     photos that already made it, so Retry only resends the ones that failed. */
 async function uploadPost(files, caption, item, done = []) {
   state.uploads++;
+  // The hourly cleanup removes photos no post uses once they're 2 h old, so a
+  // Retry much later re-sends everything rather than trusting old uploads.
+  done.at = done.at || [];
+  done.forEach((_, i) => { if (Date.now() - (done.at[i] || 0) > 3600e3) delete done[i]; });
   const frac = files.map((_, i) => (done[i] ? 1 : 0));
   const tick = () => item.progress(0.02 + 0.93 * frac.reduce((a, b) => a + b, 0) / files.length);
   tick();
@@ -802,6 +814,7 @@ async function uploadPost(files, caption, item, done = []) {
         const blob = await prepare(files[i]);
         const res = await uploadToCloudinary(blob, f => { frac[i] = f; tick(); });
         done[i] = { publicId: res.public_id, version: res.version, w: res.width, h: res.height };
+        done.at[i] = Date.now();
         frac[i] = 1; tick();
       }
     };

@@ -16,6 +16,18 @@ Live: <https://spykkee.github.io/j-j-wedding-photos/>
 
 Everything is on free tiers and the Firebase project has no billing account.
 
+## Deleting
+
+Deleting a post removes it and its comments from Firestore at once. The photos
+on Cloudinary are removed by an hourly GitHub Actions job
+([.github/workflows/cleanup.yml](.github/workflows/cleanup.yml) →
+[scripts/cleanup-cloudinary.mjs](scripts/cleanup-cloudinary.mjs)), because only a
+request signed with the Cloudinary API secret can delete, and a web page can't
+hold a secret. The job deletes images that no post uses once they're over 2 hours
+old. It needs two repo secrets, `CLOUDINARY_API_KEY` and `CLOUDINARY_API_SECRET`
+(Cloudinary → Settings → API Keys). Run it by hand from the Actions tab; it
+defaults to a dry run.
+
 ## Moderating
 
 A guest can delete their own posts and comments from the phone and browser they

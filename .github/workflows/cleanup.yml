@@ -1,0 +1,41 @@
+name: Clean up deleted photos
+
+# Removes Cloudinary images that no post uses any more (see
+# scripts/cleanup-cloudinary.mjs). Needs the repo secrets CLOUDINARY_API_KEY
+# and CLOUDINARY_API_SECRET.
+on:
+  schedule:
+    - cron: '17 * * * *'   # hourly
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Only list what would be deleted
+        type: boolean
+        default: true
+      allow_empty:
+        description: Allow emptying the folder when there are no posts at all
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/cleanup-cloudinary.mjs
+        env:
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+          DRY_RUN: ${{ inputs.dry_run == true }}
+          ALLOW_EMPTY: ${{ inputs.allow_empty == true }}

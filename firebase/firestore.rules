@@ -85,7 +85,10 @@ service cloud.firestore {
           && request.resource.data.text is string
           && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 500
           && request.resource.data.createdAt == request.time;
-        allow delete: if signedIn() && (resource.data.uid == me() || isAdmin());
+        // The comment's author, the post's author (deleting the whole post) or an admin.
+        allow delete: if signedIn() && (resource.data.uid == me()
+          || get(/databases/$(database)/documents/posts/$(postId)).data.uid == me()
+          || isAdmin());
       }
     }
   }
