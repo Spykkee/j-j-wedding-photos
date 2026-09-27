@@ -1,0 +1,92 @@
+rules_version = '2';
+
+// Guest photo feed (photos.html). Guests sign in anonymously; every write is
+// tied to that anonymous uid. The images themselves live on Cloudinary — only
+// their ids, captions, likes and comments are stored here.
+//
+//   admins/{uid}                          exists  -> that device can moderate
+//   posts/{postId}                        { uid, name, caption, publicId, version, w, h,
+//                                           createdAt, likes: {uid: true}, commentCount,
+//                                           recent: [{id, uid, name, text}] (last 2 comments),
+//                                           photos: [{publicId, version, w, h}] (1–10, carousel) }
+//   posts/{postId}/comments/{commentId}   { uid, name, text, createdAt }
+//
+// Admins are added from the Firebase console or the CLI (never from a browser).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+    function isAdmin() {
+      return signedIn() && exists(/databases/$(database)/documents/admins/$(me()));
+    }
+    function validName(n) { return n is string && n.size() > 0 && n.size() <= 40; }
+    function changed() { return request.resource.data.diff(resource.data).affectedKeys(); }
+
+    match /admins/{uid} {
+      allow get: if signedIn() && uid == me();
+      allow list, write: if false;
+    }
+
+    match /posts/{postId} {
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(
+             ['uid', 'name', 'caption', 'publicId', 'version', 'w', 'h', 'photos', 'createdAt', 'likes', 'commentCount'])
+        // Several photos, swiped as a carousel. The first is also stored at the top level.
+        && (!('photos' in request.resource.data)
+            || (request.resource.data.photos is list
+                && request.resource.data.photos.size() >= 1
+                && request.resource.data.photos.size() <= 10))
+        && request.resource.data.keys().hasAll(
+             ['uid', 'name', 'caption', 'publicId', 'version', 'w', 'h', 'createdAt', 'likes', 'commentCount'])
+        && request.resource.data.uid == me()
+        && validName(request.resource.data.name)
+        && request.resource.data.caption is string && request.resource.data.caption.size() <= 300
+        && request.resource.data.publicId is string
+        && request.resource.data.publicId.matches('^[A-Za-z0-9_/-]{1,200}$')
+        && request.resource.data.version is int
+        && request.resource.data.w is int && request.resource.data.w > 0
+        && request.resource.data.h is int && request.resource.data.h > 0
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.likes == {}
+        && request.resource.data.commentCount == 0;
+
+      allow update: if signedIn() && (
+        // Like / unlike: only your own key in the likes map, and only ever `true`.
+        (changed().hasOnly(['likes'])
+          && request.resource.data.likes.diff(resource.data.likes).affectedKeys().hasOnly([me()])
+          && (!(me() in request.resource.data.likes) || request.resource.data.likes[me()] == true))
+        // Comment counter moves by exactly one, alongside adding / removing a comment,
+        // and `recent` (the last two comments, previewed under the photo) is refreshed.
+        || (changed().hasOnly(['commentCount', 'recent'])
+          && (!('recent' in request.resource.data)
+              || (request.resource.data.recent is list && request.resource.data.recent.size() <= 2))
+          && request.resource.data.commentCount is int
+          && request.resource.data.commentCount >= 0
+          && (request.resource.data.commentCount == resource.data.commentCount + 1
+              || request.resource.data.commentCount == resource.data.commentCount - 1))
+        // Owner may fix their caption.
+        || (resource.data.uid == me()
+          && changed().hasOnly(['caption'])
+          && request.resource.data.caption is string && request.resource.data.caption.size() <= 300)
+      );
+
+      allow delete: if signedIn() && (resource.data.uid == me() || isAdmin());
+
+      match /comments/{commentId} {
+        allow read: if signedIn();
+        allow create: if signedIn()
+          && request.resource.data.keys().hasOnly(['uid', 'name', 'text', 'createdAt'])
+          && request.resource.data.keys().hasAll(['uid', 'name', 'text', 'createdAt'])
+          && request.resource.data.uid == me()
+          && validName(request.resource.data.name)
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 500
+          && request.resource.data.createdAt == request.time;
+        allow delete: if signedIn() && (resource.data.uid == me() || isAdmin());
+      }
+    }
+  }
+}
