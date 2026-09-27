@@ -46,6 +46,7 @@ const postsCol = collection(db, 'posts');
 
 const STR = {
   en: {
+    seePhoto: 'See the photo',
     docTitle: 'J&J Wedding Photos', language: 'Language', yourName: 'Your name',
     title: 'J & J — Wedding Photos', statPosts: 'posts', statDates: 'Oct 2026', statPlace: 'France',
     newPost: 'New post',
@@ -71,6 +72,7 @@ const STR = {
     deviceId: 'Device ID', actionFailed: 'That didn’t work. Check your connection and try again.'
   },
   fr: {
+    seePhoto: 'Voir la photo',
     docTitle: 'Photos du mariage J&J', language: 'Langue', yourName: 'Votre prénom',
     title: 'J & J — Photos du mariage', statPosts: 'publications', statDates: 'oct. 2026', statPlace: 'France',
     newPost: 'Nouvelle publication',
@@ -96,6 +98,7 @@ const STR = {
     deviceId: 'Identifiant de l’appareil', actionFailed: 'Ça n’a pas marché. Vérifiez votre connexion et réessayez.'
   },
   ko: {
+    seePhoto: '사진 크게 보기',
     docTitle: 'J&J 웨딩 사진', language: '언어', yourName: '이름',
     title: 'J & J — 웨딩 사진', statPosts: '게시물', statDates: '2026년 10월', statPlace: '프랑스',
     newPost: '새 게시물',
@@ -835,6 +838,10 @@ function wire() {
   }));
   els.add.addEventListener('click', startAdd);
   els.cta.addEventListener('click', startAdd);
+  // Profile photo opens full size; any tap closes it.
+  const viewer = $('viewer');
+  $('ring').addEventListener('click', () => viewer.showModal());
+  viewer.addEventListener('click', () => viewer.close());
   document.querySelectorAll('.lang__btn').forEach(b => b.addEventListener('click', () => { setLang(b.dataset.lang); $('lang').open = false; }));
   document.addEventListener('click', e => { if (!e.target.closest('#lang')) $('lang').open = false; });
   els.file.addEventListener('change', () => {

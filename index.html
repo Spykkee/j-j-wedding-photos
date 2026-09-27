@@ -49,7 +49,7 @@
 
   <section class="profile">
     <div class="profile__row">
-      <div class="ring"><img class="ring__img" src="images/couple.jpg" alt="J &amp; J" width="620" height="984"></div>
+      <button type="button" class="ring" id="ring" aria-label="See the photo" data-t-aria="seePhoto"><img class="ring__img" src="images/couple.jpg" alt="J &amp; J" width="620" height="984"></button>
       <dl class="stats">
         <div><dt data-t="statPosts">posts</dt><dd id="ph-count">–</dd></div>
         <div><dt data-t="statDates">Oct 2026</dt><dd>9–11</dd></div>
@@ -103,6 +103,14 @@
   </button>
 </nav>
 <input type="file" id="ph-file" accept="image/*" multiple hidden>
+
+<!-- Couple photo, full size -->
+<dialog class="viewer" id="viewer">
+  <img class="viewer__img" src="images/couple.jpg" alt="J &amp; J" width="620" height="984">
+  <button type="button" class="viewer__close" aria-label="Close" data-t-aria="close">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+  </button>
+</dialog>
 
 <!-- Name -->
 <dialog class="dlg" id="ph-name-dlg">

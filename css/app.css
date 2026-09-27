@@ -92,6 +92,7 @@ button { font: inherit; color: inherit; }
 .profile { padding: 18px 16px 6px; }
 .profile__row { display: flex; align-items: center; gap: 22px; }
 .ring {
+  display: block; border: 0; cursor: zoom-in; -webkit-tap-highlight-color: transparent;
   flex-shrink: 0; width: 88px; height: 88px; padding: 3px; border-radius: 50%;
   background: conic-gradient(from 210deg, var(--burg), var(--gold), var(--burg-pale), var(--burg));
 }
@@ -120,6 +121,28 @@ button { font: inherit; color: inherit; }
 }
 .profile__cta svg { width: 18px; height: 18px; }
 .profile__cta:active { transform: scale(.99); }
+
+.ring:active { transform: scale(.97); }
+
+/* full-size couple photo */
+.viewer {
+  max-width: 100vw; max-height: 100vh; width: 100%; height: 100%; margin: 0; padding: 0;
+  border: 0; background: transparent; cursor: zoom-out;
+}
+.viewer[open] { display: grid; place-items: center; }
+.viewer::backdrop { background: rgba(28, 26, 24, .92); }
+.viewer__img {
+  display: block; max-width: min(92vw, 620px); max-height: 86vh; width: auto; height: auto;
+  border-radius: 12px; box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .6);
+  animation: viewer-in .28s cubic-bezier(.16, 1, .3, 1);
+}
+@keyframes viewer-in { from { opacity: 0; transform: scale(.9); } }
+.viewer__close {
+  position: fixed; top: calc(12px + env(safe-area-inset-top, 0px)); right: 12px;
+  display: grid; place-items: center; width: 40px; height: 40px; padding: 0;
+  border: 0; border-radius: 50%; background: rgba(255, 255, 255, .14); color: #fff; cursor: pointer;
+}
+.viewer__close svg { width: 22px; height: 22px; }
 
 /* QR — for laptops and projectors; on a phone you're already here */
 .qr {
