@@ -41,7 +41,11 @@ and rewrites `recent`.
 - gcloud's *default* account on this machine is the user's work account. Always
   pass `--account aerojim92@gmail.com` for this project; never switch the default.
 - The Firebase web key is public by design and restricted in Google Cloud to
-  the site's origins and to identitytoolkit / securetoken / firestore.
+  the site's origins and to identitytoolkit / securetoken / firestore. GitHub
+  secret scanning flags it as a "Google API Key" leak; that's expected. Check the
+  restriction still holds (a request with another site's Referer must get
+  PERMISSION_DENIED), then resolve the alert as "won't fix". Don't try to hide
+  the key; a static page can't.
 - Do not upgrade the Firebase project to Blaze.
 
 ## Testing
